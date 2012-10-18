@@ -349,7 +349,12 @@ module Net
     end
 
     def valid_sec_websocket_subprotocol_header?(header_value="")
-      nil_or_empty?(header_value)
+      if @subprotocols.empty?
+        nil_or_empty?(header_value)
+      else
+        @subprotocols.include?(header_value)
+      end
     end
+
   end
 end
