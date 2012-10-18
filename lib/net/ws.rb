@@ -15,7 +15,7 @@ end
 module Net
 
   class WS < HTTP
-    class Error < Net::HTTPError ; end
+    class Error < StandardError ; end
 
     FIN_FALSE = 0
     FIN_TRUE = 1
@@ -51,9 +51,16 @@ module Net
       options ||= {}
       @uri = URI(uri)
       @on_message = options[:on_message]
+      @subprotocols = options[:subprotocols].is_a?(Array) ? \
+        options[:subprotocols] : \
+        [options[:subprocotols]]
       @connection_state = nil
 
       super(@uri.host, @uri.port)
+    end
+
+    def to_io
+      @socket.io
     end
 
     def open(request_uri=nil)
@@ -80,7 +87,12 @@ module Net
     end
 
     def send_text(data)
+      # TODO fragmentation
       send_frame(FIN_TRUE, 0, OPCODE_TEXT, data)
+    end
+
+    def receive_message
+      # TODO fragmentation
       receive_frame
     end
 
@@ -255,7 +267,9 @@ module Net
         HEADER_CONNECTION => HEADER_CONNECTION_VALUE,
         HEADER_KEY => generate_sec_websocket_key,
         HEADER_VERSION => HEADER_VERSION_VALUE,
+        HEADER_SUBPROTOCOL => @subprotocols.join(","),
       }
+
       get = Net::HTTP::Get.new(@request_uri, headers)
 
       start
