@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 require "net/http"
 require "uri"
 require "base64"
@@ -145,7 +146,9 @@ module Net
     end
 
     def extract_unmasked_payload(length)
-      @socket.read(length)
+      # Use force_encoding here, as there's no way to know what's coming in
+      # from the socket, and ruby will assume ASCII-8BIT.
+      @socket.read(length).force_encoding("UTF-8")
     end
 
     # Control frames are identified by opcodes where the most significant bit
@@ -211,16 +214,16 @@ module Net
 
       if payload.nil?
         @socket.write [mask_flag].pack("C")
-      elsif payload.size < LENGTH_IS_16BIT
-        @socket.write [mask_flag + payload.size].pack("C")
-      elsif payload.size <= UNSIGNED_16BIT_MAX
+      elsif payload.bytes.count < LENGTH_IS_16BIT
+        @socket.write [mask_flag + payload.bytes.count].pack("C")
+      elsif payload.bytes.count <= UNSIGNED_16BIT_MAX
         @socket.write [mask_flag + 126].pack("C")
-        @socket.write [payload.size].pack("n*")
-      elsif payload.size <= UNSIGNED_64BIT_MAX
-        @socket.write [mask_flag + 127, payload.size].pack("C")
-        @socket.write [payload.size].pack("n*")
+        @socket.write [payload.bytes.count].pack("n*")
+      elsif payload.bytes.count <= UNSIGNED_64BIT_MAX
+        @socket.write [mask_flag + 127, payload.bytes.count].pack("C")
+        @socket.write [payload.bytes.count].pack("n*")
       else
-        raise Error, "Unhandled payload size: #{payload.size.inspect}"
+        raise Error, "Unhandled payload size: #{payload.bytes.count.inspect}"
       end
     end
 
@@ -234,7 +237,7 @@ module Net
       return unless payload
 
       # FIXME we only support text for now
-      @socket.write(mask(payload.unpack("U*"), masking_key).pack("C*"))
+      @socket.write(mask(payload.unpack("C*"), masking_key).pack("C*"))
     end
 
     def mask(payload, key)
