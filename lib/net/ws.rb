@@ -218,10 +218,10 @@ module Net
         @socket.write [mask_flag + payload.bytes.count].pack("C")
       elsif payload.bytes.count <= UNSIGNED_16BIT_MAX
         @socket.write [mask_flag + 126].pack("C")
-        @socket.write [payload.bytes.count].pack("n*")
+        @socket.write [payload.bytes.count].pack("n")
       elsif payload.bytes.count <= UNSIGNED_64BIT_MAX
-        @socket.write [mask_flag + 127, payload.bytes.count].pack("C")
-        @socket.write [payload.bytes.count].pack("n*")
+        @socket.write [mask_flag + 127].pack("C")
+        @socket.write payload.bytes.count.divmod(2**32).pack("NN")
       else
         raise Error, "Unhandled payload size: #{payload.bytes.count.inspect}"
       end
