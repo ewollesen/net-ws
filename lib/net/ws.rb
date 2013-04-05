@@ -75,6 +75,10 @@ module Net
       end
     end
 
+    def connected?
+      STATE_CONNECTED == @connection_state
+    end
+
     def ping(message=nil)
       send_frame(FIN_TRUE, 0, OPCODE_PING, message)
       receive_frame
